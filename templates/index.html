@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>GreenhouseDashboard</title>
+	<style>
+		body { font-family: Arial, sans-serif; background: #f0f8ff; padding: 20px; }
+		h1 { color: #2e8b57; }
+		.data { margin-top: 20px;}
+		.data div {margin: 10px 0; font-size: 1.2em;}
+       		canvas { margin-top: 30px; background: white; border: 1px solid #ccc; padding: 10px; }
+	</style>
+	<script src="https://cdn.jsdelivr.net/npm/chart.js"></script> 
+</head>
+<body>
+	<h1>Greenhouse Environment Monitoring</h1>
+	<div class="data">
+		<div><strong>Time:</strong> <span id="timestamp">Loading...</span></div>
+		<div><strong>Temperature:</strong> <span id="temperature">--</span></div>
+		<div><strong>Light:</strong> <span id="light">--</span></div>
+		<div><strong>Rain Detected:</strong> <span id="rain">--</span></div>
+	</div>
+	<canvas id="tempChart" width="800" height="300"></canvas>
+	<canvas id="lightChart" width="800" height="300"></canvas>
+	
+	<script>
+		let tempChart, lightChart;
+
+		async function fetchDataAndUpdateCharts() {
+			console.log("Fetching data...");
+
+			try {
+				const res = await fetch('/data');
+				const data = await res.json();
+				
+				console.log("Received data:", data);
+
+			const timestamps = data.map(d => d.timestamp);
+			const temperatures = data.map(d => d.temperature);
+			const lights = data.map(d => d.light);
+			const rain = data[data.length - 1]?.rain;
+
+			document.getElementById('timestamp').innerText = timestamps.at(-1);
+			document.getElementById('temperature').innerText = temperatures.at(-1) + "*C";
+			document.getElementById('light').innerText = lights.at(-1);
+			document.getElementById('rain').innerText = rain ? 'Yes' : 'No';
+
+			console.log("Latest temperature:", temperatures.at(-1));
+			console.log("Latest light:", lights.at(-1));
+			if (tempChart && lightChart) {
+			    tempChart.data.labels = timestamps;
+			    tempChart.data.datasets[0].data = temperatures;
+			    tempChart.update();
+
+			    lightChart.data.labels = timestamps;
+		            lightChart.data.datasets[0].data = lights;
+		            lightChart.update();
+			}
+		} catch (error) {
+			console.error("Failed to fetch data:", error);
+}
+}		
+		function createCharts() {
+			const ctx1 = document.getElementById('tempChart').getContext('2d');
+			const ctx2 = document.getElementById('lightChart').getContext('2d');
+
+			tempChart = new Chart(ctx1, {
+				type: 'line',
+				data: {
+				labels: [],
+				datasets: [{
+				label: 'Temperature(*C)',
+				data: [],
+				borderColor: 'tomato',
+				backgroundColor: 'rgba(255,99,132,0.2)',
+				fill: true,
+				tension: 0.3
+			}]
+	},
+	options: {
+		responsive: true,
+		scales: {
+			x: { title: { display: true, text: 'Time' }},
+			y: { title: { display: true, text: 'Temperature(*C)' }}
+		}
+
+	}
+});
+
+			lightChart = new Chart(ctx2, {
+			type: 'line',
+			data: {
+			labels: [],
+			datasets: [{
+				label: 'Light Intensity',
+				data: [],
+				borderColor: 'orange',
+				backgroundColor: 'rgba(255,165,0,0.2)',
+				fill: true,
+				tension: 0.3
+			}]
+		},
+		options: {
+			responsive: true,
+			scales: {
+				x: { title: { display: true, text:'Time' }},
+				y: { title: { display: true, text: 'Light' }}
+			}
+		}
+	});
+}
+
+	createCharts();
+	fetchDataAndUpdateCharts();
+	setInterval(fetchDataAndUpdateCharts, 10000);
+</script>
+</body>
+</html>
+
